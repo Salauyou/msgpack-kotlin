@@ -3,53 +3,50 @@ package de.salauyou.msgpack
 import org.msgpack.MessageTypeException
 import org.msgpack.packer.Packer
 import org.msgpack.template.AbstractTemplate
-import org.msgpack.template.FieldOption
+import org.msgpack.template.FieldList
 import org.msgpack.template.Template
 import org.msgpack.template.TemplateRegistry
-import org.msgpack.template.builder.DefaultFieldEntry
+import org.msgpack.template.builder.AbstractTemplateBuilder
 import org.msgpack.template.builder.FieldEntry
-import org.msgpack.template.builder.ReflectionTemplateBuilder
 import org.msgpack.unpacker.Unpacker
 import java.io.IOException
-import java.lang.reflect.Field
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.javaType
 
-class KotlinAwareReflectionTemplateBuilder(registry: TemplateRegistry) : ReflectionTemplateBuilder(registry) {
+class KotlinDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
 
-    override fun toFieldEntries(targetClass: Class<*>, from: FieldOption) : Array<FieldEntry> {
-        if (targetClass.kotlin.isData) {
-            val kClass = targetClass.kotlin
-            // TODO: extract from superclasses as well
-            val fieldsByName = targetClass.getDeclaredFields().associateBy { it.name }
-            // extract only fields corresponding to args in main constructor in their order in constructor
-            val fields: List<Field> = kClass.constructors.first().parameters.map {
-                fieldsByName[it.name]!!
-            }
-            return fields.map { DefaultFieldEntry(it, from) }.toTypedArray()
-        } else {
-            return super.toFieldEntries(targetClass, from)
+    override fun matchType(targetType: Type, forceBuild: Boolean) = targetType.ktClass<Any>().isData
+
+    @OptIn(ExperimentalStdlibApi::class)
+    override fun <T : Any> buildTemplate(targetType: Type): Template<T> {
+        if (targetType is ParameterizedType) {
+            throw UnsupportedOperationException("Parameterized Kotlin data classes not supported")
         }
+        val ktClass = targetType.ktClass<T>()
+        val membersByName = ktClass.members.associateBy { it.name }
+        val mainConstructor = ktClass.constructors.first()
+        val templates = mainConstructor.parameters.map { registry.lookup(it.type.javaType) }
+        val getters = mainConstructor.parameters.map { membersByName[it.name]!! }
+        return KtDataClassTemplate(mainConstructor, templates, getters)
+    }
+
+    override fun <T : Any> buildTemplate(targetClass: Class<T>, fieldList: FieldList): Template<T> {
+        throw UnsupportedOperationException("Template with limited fields not supported for Kotlin data classes")
     }
 
     override fun <T : Any> buildTemplate(targetClass: Class<T>, entries: Array<FieldEntry>): Template<T> {
-        val kClass = (targetClass as Class<*>).kotlin as KClass<T>
-        if (kClass.isData) {
-            val membersByName = kClass.members.associateBy { it.name }
-            val getters = entries.map { membersByName[it.name]!! }
-            val fieldTemplates: List<Template<Any>> = entries.map { registry.lookup(it.genericType) }
-            return KotlinDataReflectionClassTemplate(kClass.constructors.first(), getters, fieldTemplates)
-        } else {
-            return super.buildTemplate(targetClass, entries)
-        }
+        throw UnsupportedOperationException("Not used in this implementation")
     }
 
-    internal class KotlinDataReflectionClassTemplate<T : Any>(
+    internal class KtDataClassTemplate<T : Any>(
         private val constructor: KFunction<T>,
-        private val getters: List<KCallable<Any?>>,
         private val templates: List<Template<Any>>,
-    ): AbstractTemplate<T>() {
+        private val getters: List<KCallable<Any?>>,
+    ) : AbstractTemplate<T>() {
 
         override fun write(pk: Packer, v: T?, required: Boolean) {
             try {
@@ -57,7 +54,7 @@ class KotlinAwareReflectionTemplateBuilder(registry: TemplateRegistry) : Reflect
                     pk.writeNil()
                     return
                 }
-                pk.writeArrayBegin(templates.size)
+                pk.writeArrayBegin(getters.size)
                 templates.forEachIndexed { i, tmpl ->
                     when (val obj = getters[i].call(v)) {
                         null -> pk.writeNil()
@@ -92,5 +89,10 @@ class KotlinAwareReflectionTemplateBuilder(registry: TemplateRegistry) : Reflect
                 throw MessageTypeException(e)
             }
         }
+    }
+
+    private fun <T : Any> Type.ktClass(): KClass<T> = when (this) {
+        is ParameterizedType -> (rawType.javaClass as Class<T>).kotlin
+        else -> (this as Class<T>).kotlin
     }
 }
