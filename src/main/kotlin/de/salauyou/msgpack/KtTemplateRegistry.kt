@@ -7,11 +7,12 @@ import org.msgpack.template.GenericCollectionTemplate
 import org.msgpack.template.GenericMapTemplate
 import org.msgpack.template.Template
 import org.msgpack.template.TemplateRegistry
+import org.msgpack.template.builder.TemplateBuilderChain
 import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 
-class KtTemplateRegistry : TemplateRegistry(null) {
+internal class KtTemplateRegistry : TemplateRegistry(null) {
 
     init {
         registerGeneric(Map::class.java, GenericMapTemplate(this, KtMapTemplate::class.java))
@@ -20,21 +21,31 @@ class KtTemplateRegistry : TemplateRegistry(null) {
         registerGeneric(Set::class.java, GenericCollectionTemplate(this, KtSetTemplate::class.java))
     }
 
+    override fun createTemplateBuilderChain(): TemplateBuilderChain {
+        return KtTemplateBuilderChain(this)
+    }
+
     override fun lookup(targetType: Type): Template<*> {
         val clearedType = when (targetType) {
             // type parameters of generic Kt collections are resolved as wildcards:
             // List<E> -> List<? extends E>, Map<K, V> -> Map<K, ? extends V>, ...
             is WildcardType -> when {
-                targetType.upperBounds.size == 1 -> targetType.upperBounds.single()
-                else -> throw UnsupportedOperationException(
-                    "Templates for lower- and multiple-bound generic wildcards not supported ($targetType)"
+                targetType.upperBounds.isEmpty() || targetType.upperBounds.size > 1 -> throw UnsupportedOperationException(
+                    "Templates for no- or multiple-bounded generic wildcards not supported ($targetType)"
                 )
+                targetType.upperBounds.single() == Object::class.java -> throw UnsupportedOperationException(
+                    "Templates for unbounded generic wildcards not supported ($targetType)"
+                )
+                else -> targetType.upperBounds.single()
             }
             is TypeVariable<*> -> when {
-                targetType.bounds.size == 1 -> targetType.bounds.single()
-                else -> throw UnsupportedOperationException(
+                targetType.bounds.size > 1 -> throw UnsupportedOperationException(
                     "Templates for multiple-bound generic type variables not supported ($targetType)"
                 )
+                targetType.bounds.single() == Object::class.java -> throw UnsupportedOperationException(
+                    "Templates for unbounded type variables not supported ($targetType)"
+                )
+                else -> targetType.bounds.single()
             }
             else -> targetType
         }

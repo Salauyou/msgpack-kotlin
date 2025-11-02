@@ -1,31 +1,17 @@
 package de.salauyou.msgpack
 
-import de.salauyou.msgpack.KtDataClassTemplateBuilder.KtDataClassTemplate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.msgpack.MessagePack
+import org.msgpack.MessageTypeException
 import java.math.BigInteger
 
 class KotlinDataClassSerializationTest {
 
     @Test
     fun `data class with nesting`() {
-        val registry = KtTemplateRegistry()
-        val builder = KtDataClassTemplateBuilder(registry)
-
-        val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
-        assertTrue(templateNested is KtDataClassTemplate)
-        registry.register(NestedData::class.java, templateNested)
-
-        val template = builder.buildTemplate<SampleData>(SampleData::class.java)
-        assertTrue(template is KtDataClassTemplate)
-
-        val msgPack = MessagePack()
-        msgPack.register(NestedData::class.java, templateNested)
-        msgPack.register(SampleData::class.java, template)
-
+        val msgPack = KtMessagePack()
         val input = SampleData(
             string = "1",
             stringNullable = null,
@@ -35,26 +21,12 @@ class KotlinDataClassSerializationTest {
         )
         val binary = msgPack.write(input)
         val output = msgPack.read(binary, SampleData::class.java)
-
         assertEquals(input, output)
     }
 
     @Test
     fun `data class with collections`() {
-        val registry = KtTemplateRegistry()
-        val builder = KtDataClassTemplateBuilder(registry)
-
-        val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
-        assertTrue(templateNested is KtDataClassTemplate)
-        registry.register(NestedData::class.java, templateNested)
-
-        val template = builder.buildTemplate<DataWithCollections>(DataWithCollections::class.java)
-        assertTrue(template is KtDataClassTemplate)
-
-        val msgPack = MessagePack()
-        msgPack.register(NestedData::class.java, templateNested)
-        msgPack.register(DataWithCollections::class.java, template)
-
+        val msgPack = KtMessagePack()
         val input = DataWithCollections(
             list = listOf("1", "2", "3"),
             set = setOf(NestedData("1", "2"), NestedData("A", "B"), null),
@@ -68,19 +40,18 @@ class KotlinDataClassSerializationTest {
         )
         val binary = msgPack.write(input)
         val output = msgPack.read(binary, DataWithCollections::class.java)
-
         assertEquals(input, output)
     }
 
     @Test
     fun `parameterized data class not supported`() {
-        val registry = KtTemplateRegistry()
-        val builder = KtDataClassTemplateBuilder(registry)
-
-        val genericType = ClassWithParameterizedFields::class.java.getDeclaredField("stringData").genericType
-
-        assertThrows<UnsupportedOperationException> {
-            builder.buildTemplate<GenericData<String>>(genericType)
+        val msgPack = KtMessagePack()
+        val input = GenericData("1")
+        assertThrows<MessageTypeException> {
+            msgPack.write(input)
+        }.also {
+            assertTrue(it.cause is UnsupportedOperationException)
+            assertEquals("Templates for unbounded type variables not supported (T)", it.cause!!.message)
         }
     }
 
