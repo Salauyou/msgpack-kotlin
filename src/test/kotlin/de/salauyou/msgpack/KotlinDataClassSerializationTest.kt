@@ -1,26 +1,31 @@
 package de.salauyou.msgpack
 
-import de.salauyou.msgpack.KotlinDataClassTemplateBuilder.KtDataClassTemplate
+import de.salauyou.msgpack.KtDataClassTemplateBuilder.KtDataClassTemplate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.msgpack.MessagePack
+import org.msgpack.template.GenericCollectionTemplate
+import org.msgpack.template.GenericMapTemplate
 import org.msgpack.template.TemplateRegistry
 import java.math.BigInteger
+import de.salauyou.msgpack.KtCollectionTemplates.KtListTemplate
+import de.salauyou.msgpack.KtCollectionTemplates.KtMapTemplate
+import de.salauyou.msgpack.KtCollectionTemplates.KtSetTemplate
 
 class KotlinDataClassSerializationTest {
 
     @Test
     fun `data class with nesting`() {
-        val templateRegistry = TemplateRegistry(null)
-        val templateBuilder = KotlinDataClassTemplateBuilder(templateRegistry)
+        val registry = TemplateRegistry(null)
+        val builder = KtDataClassTemplateBuilder(registry)
 
-        val templateNested = templateBuilder.buildTemplate<NestedData>(NestedData::class.java)
+        val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
         assertTrue(templateNested is KtDataClassTemplate)
-        templateRegistry.register(NestedData::class.java, templateNested)
+        registry.register(NestedData::class.java, templateNested)
 
-        val template = templateBuilder.buildTemplate<SampleData>(SampleData::class.java)
+        val template = builder.buildTemplate<SampleData>(SampleData::class.java)
         assertTrue(template is KtDataClassTemplate)
 
         val msgPack = MessagePack()
@@ -41,31 +46,38 @@ class KotlinDataClassSerializationTest {
     }
 
     @Test
-    fun `data class with mutable collections`() {
-        val templateRegistry = TemplateRegistry(null)
-        val templateBuilder = KotlinDataClassTemplateBuilder(templateRegistry)
+    fun `data class with collections`() {
+        val registry = TemplateRegistry(null)
+        val builder = KtDataClassTemplateBuilder(registry)
 
-        val templateNested = templateBuilder.buildTemplate<NestedData>(NestedData::class.java)
-        templateRegistry.register(NestedData::class.java, templateNested)
+        registry.registerGeneric(Map::class.java, GenericMapTemplate(registry, KtMapTemplate::class.java))
+        registry.registerGeneric(List::class.java, GenericCollectionTemplate(registry, KtListTemplate::class.java))
+        registry.registerGeneric(Collection::class.java, GenericCollectionTemplate(registry, KtListTemplate::class.java))
+        registry.registerGeneric(Set::class.java, GenericCollectionTemplate(registry, KtSetTemplate::class.java))
 
-        val template = templateBuilder.buildTemplate<DataWithMutableCollections>(DataWithMutableCollections::class.java)
+        val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
+        registry.register(NestedData::class.java, templateNested)
+
+        val template = builder.buildTemplate<DataWithCollections>(DataWithCollections::class.java)
         assertTrue(template is KtDataClassTemplate)
 
         val msgPack = MessagePack()
         msgPack.register(NestedData::class.java, templateNested)
-        msgPack.register(DataWithMutableCollections::class.java, template)
+        msgPack.register(DataWithCollections::class.java, template)
 
-        val input = DataWithMutableCollections(
-            list = arrayListOf("1", "2", "3"),
-            map = hashMapOf(1 to NestedData("a", "b"), 2 to NestedData("", null)),
-            deepMap = hashMapOf(
-                100 to hashMapOf(101 to NestedData("101", "A"), 102 to NestedData("102", "B")),
-                200 to hashMapOf(201 to NestedData("201", null)),
-                300 to hashMapOf(),
+        val input = DataWithCollections(
+            list = listOf("1", "2", "3"),
+            set = setOf(NestedData("1", "2"), NestedData("A", "B"), null),
+            map = mapOf(null to NestedData("1", "2"), NestedData("A", "B") to null),
+            deepMap = mapOf(
+                100 to mapOf(101 to NestedData("101", "A"), 102 to NestedData("102", "B")),
+                200 to mapOf(201 to NestedData("201", null)),
+                300 to mapOf(),
+                400 to null,
             )
         )
         val binary = msgPack.write(input)
-        val output = msgPack.read(binary, DataWithMutableCollections::class.java)
+        val output = msgPack.read(binary, DataWithCollections::class.java)
 
         assertEquals(input, output)
     }
@@ -73,7 +85,7 @@ class KotlinDataClassSerializationTest {
     @Test
     fun `parameterized data class not supported`() {
         val templateRegistry = TemplateRegistry(null)
-        val templateBuilder = KotlinDataClassTemplateBuilder(templateRegistry)
+        val templateBuilder = KtDataClassTemplateBuilder(templateRegistry)
 
         val genericType = ClassWithParameterizedFields::class.java.getDeclaredField("stringData").genericType
 
@@ -95,10 +107,12 @@ class KotlinDataClassSerializationTest {
         val strNullable: String?,
     )
 
-    data class DataWithMutableCollections(
-        val list: ArrayList<String>,
-        val map: HashMap<Int, NestedData>,
-        val deepMap: HashMap<Int, HashMap<Int, NestedData>>,
+    @JvmSuppressWildcards
+    data class DataWithCollections(
+        val list: List<String>,
+        val set: Set<NestedData?>,
+        val map: Map<NestedData?, NestedData?>,
+        val deepMap: Map<Int, Map<Int, NestedData>?>,
     )
 
     data class GenericData<T>(
