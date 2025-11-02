@@ -1,1 +1,1 @@
-Support Kotlin data classes and collection in msgpack
+Support Kotlin data classes and collections in msgpack
