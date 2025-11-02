@@ -6,19 +6,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.msgpack.MessagePack
-import org.msgpack.template.GenericCollectionTemplate
-import org.msgpack.template.GenericMapTemplate
-import org.msgpack.template.TemplateRegistry
 import java.math.BigInteger
-import de.salauyou.msgpack.KtCollectionTemplates.KtListTemplate
-import de.salauyou.msgpack.KtCollectionTemplates.KtMapTemplate
-import de.salauyou.msgpack.KtCollectionTemplates.KtSetTemplate
 
 class KotlinDataClassSerializationTest {
 
     @Test
     fun `data class with nesting`() {
-        val registry = TemplateRegistry(null)
+        val registry = KtTemplateRegistry()
         val builder = KtDataClassTemplateBuilder(registry)
 
         val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
@@ -47,15 +41,11 @@ class KotlinDataClassSerializationTest {
 
     @Test
     fun `data class with collections`() {
-        val registry = TemplateRegistry(null)
+        val registry = KtTemplateRegistry()
         val builder = KtDataClassTemplateBuilder(registry)
 
-        registry.registerGeneric(Map::class.java, GenericMapTemplate(registry, KtMapTemplate::class.java))
-        registry.registerGeneric(List::class.java, GenericCollectionTemplate(registry, KtListTemplate::class.java))
-        registry.registerGeneric(Collection::class.java, GenericCollectionTemplate(registry, KtListTemplate::class.java))
-        registry.registerGeneric(Set::class.java, GenericCollectionTemplate(registry, KtSetTemplate::class.java))
-
         val templateNested = builder.buildTemplate<NestedData>(NestedData::class.java)
+        assertTrue(templateNested is KtDataClassTemplate)
         registry.register(NestedData::class.java, templateNested)
 
         val template = builder.buildTemplate<DataWithCollections>(DataWithCollections::class.java)
@@ -84,13 +74,13 @@ class KotlinDataClassSerializationTest {
 
     @Test
     fun `parameterized data class not supported`() {
-        val templateRegistry = TemplateRegistry(null)
-        val templateBuilder = KtDataClassTemplateBuilder(templateRegistry)
+        val registry = KtTemplateRegistry()
+        val builder = KtDataClassTemplateBuilder(registry)
 
         val genericType = ClassWithParameterizedFields::class.java.getDeclaredField("stringData").genericType
 
         assertThrows<UnsupportedOperationException> {
-            templateBuilder.buildTemplate<GenericData<String>>(genericType)
+            builder.buildTemplate<GenericData<String>>(genericType)
         }
     }
 
@@ -107,7 +97,6 @@ class KotlinDataClassSerializationTest {
         val strNullable: String?,
     )
 
-    @JvmSuppressWildcards
     data class DataWithCollections(
         val list: List<String>,
         val set: Set<NestedData?>,
