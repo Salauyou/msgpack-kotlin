@@ -17,7 +17,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.javaType
 
-class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
+internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
 
     override fun matchType(targetType: Type, forceBuild: Boolean) = targetType.ktClass<Any>().isData
 
@@ -48,6 +48,7 @@ class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateB
         private val getters: List<KCallable<Any?>>,
     ) : AbstractTemplate<T>() {
 
+        @Throws(IOException::class)
         override fun write(pk: Packer, v: T?, required: Boolean) {
             try {
                 if (v == null) {
@@ -69,6 +70,7 @@ class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateB
             }
         }
 
+        @Throws(IOException::class)
         override fun read(u: Unpacker, to: T?, required: Boolean): T? {
             try {
                 if (!required && u.trySkipNil()) {

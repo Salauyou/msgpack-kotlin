@@ -7,14 +7,14 @@ import org.msgpack.template.Template
 import org.msgpack.unpacker.Unpacker
 import java.io.IOException
 
-object KtCollectionTemplates {
+internal object KtCollectionTemplates {
 
-    class KtListTemplate<E>(private val elementTemplate: Template<E>) : ListTemplate<E>(elementTemplate) {
+    internal class KtListTemplate<E>(private val elementTemplate: Template<E>) : ListTemplate<E>(elementTemplate) {
         @Throws(IOException::class)
         override fun read(u: Unpacker, to: List<E>?, required: Boolean) = readItems(elementTemplate, u, required)?.toList()
     }
 
-    class KtSetTemplate<E>(private val elementTemplate: Template<E>) : SetTemplate<E>(elementTemplate) {
+    internal class KtSetTemplate<E>(private val elementTemplate: Template<E>) : SetTemplate<E>(elementTemplate) {
         @Throws(IOException::class)
         override fun read(u: Unpacker, to: Set<E>?, required: Boolean) = readItems(elementTemplate, u, required)?.toSet()
     }
@@ -32,7 +32,7 @@ object KtCollectionTemplates {
         return items
     }
 
-    class KtMapTemplate<K, V>(
+    internal class KtMapTemplate<K, V>(
         private val keyTemplate: Template<K>,
         private val valueTemplate: Template<V>,
     ) : MapTemplate<K, V>(keyTemplate, valueTemplate) {
