@@ -17,7 +17,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.javaType
 
-class KotlinDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
+class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
 
     override fun matchType(targetType: Type, forceBuild: Boolean) = targetType.ktClass<Any>().isData
 
@@ -71,7 +71,7 @@ class KotlinDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTempl
 
         override fun read(u: Unpacker, to: T?, required: Boolean): T? {
             try {
-                if (u.trySkipNil()) {
+                if (!required && u.trySkipNil()) {
                     return null
                 }
                 u.readArrayBegin()
