@@ -24,7 +24,7 @@ internal object KtCollectionTemplates {
             return null
         }
         val n = u.readArrayBegin()
-        val items = mutableListOf<E>()
+        val items = ArrayList<E>(n)
         for (i in 0 until n) {
             items.add(template.read(u, null))
         }
@@ -43,7 +43,7 @@ internal object KtCollectionTemplates {
                 return null
             }
             val n = u.readMapBegin()
-            val entries = mutableListOf<Pair<K, V>>()
+            val entries = ArrayList<Pair<K, V>>(n)
             for (i in 0 until n) {
                 entries.add(keyTemplate.read(u, null) to valueTemplate.read(u, null))
             }

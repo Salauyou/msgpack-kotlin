@@ -27,8 +27,8 @@ internal class KtTemplateRegistry : TemplateRegistry(null) {
 
     override fun lookup(targetType: Type): Template<*> {
         val clearedType = when (targetType) {
-            // type parameters of generic Kt collections are resolved as wildcards:
-            // List<E> -> List<? extends E>, Map<K, V> -> Map<K, ? extends V>, ...
+            // type parameters of generic Kt collections are resolved as wildcards
+            // e.g.: Map<K, V> -> java.util.Map<K, ? extends V>
             is WildcardType -> when {
                 targetType.upperBounds.isEmpty() || targetType.upperBounds.size > 1 -> throw UnsupportedOperationException(
                     "Templates for no- or multiple-bounded generic wildcards not supported ($targetType)"
