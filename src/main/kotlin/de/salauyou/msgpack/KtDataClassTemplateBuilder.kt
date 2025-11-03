@@ -1,6 +1,8 @@
 package de.salauyou.msgpack
 
 import org.msgpack.MessageTypeException
+import org.msgpack.annotation.Message
+import org.msgpack.annotation.MessagePackMessage
 import org.msgpack.packer.Packer
 import org.msgpack.template.AbstractTemplate
 import org.msgpack.template.FieldList
@@ -15,11 +17,14 @@ import java.lang.reflect.Type
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.javaType
 
 internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
 
-    override fun matchType(targetType: Type, forceBuild: Boolean) = targetType.ktClass<Any>().isData
+    override fun matchType(targetType: Type, forceBuild: Boolean) = targetType.ktClass<Any>().let {
+        (it.hasAnnotation<Message>() || it.hasAnnotation<MessagePackMessage>()) && it.isData
+    }
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun <T : Any> buildTemplate(targetType: Type): Template<T> {

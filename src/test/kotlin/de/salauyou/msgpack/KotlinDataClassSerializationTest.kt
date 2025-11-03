@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.msgpack.MessageTypeException
+import org.msgpack.annotation.Message
 import java.math.BigInteger
 
 class KotlinDataClassSerializationTest {
@@ -55,6 +56,7 @@ class KotlinDataClassSerializationTest {
         }
     }
 
+    @Message
     data class SampleData(
         val string: String,
         val stringNullable: String?,
@@ -63,11 +65,13 @@ class KotlinDataClassSerializationTest {
         val nestedNullable: NestedData?,
     )
 
+    @Message
     data class NestedData(
         val str: String,
         val strNullable: String?,
     )
 
+    @Message
     data class DataWithCollections(
         val list: List<String>,
         val set: Set<NestedData?>,
@@ -75,6 +79,7 @@ class KotlinDataClassSerializationTest {
         val deepMap: Map<Int, Map<Int, NestedData>?>,
     )
 
+    @Message
     data class GenericData<T>(
         val value: T,
     )
