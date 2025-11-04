@@ -52,7 +52,7 @@ class KotlinDataClassSerializationTest {
             msgPack.write(input)
         }.also {
             assertTrue(it.cause is UnsupportedOperationException)
-            assertEquals("Templates for unbounded type variables not supported (T)", it.cause!!.message)
+            assertEquals("Templates for unbounded type variables not supported (T).", it.cause!!.message)
         }
     }
 
