@@ -25,7 +25,7 @@ internal object KtCollectionTemplates {
         }
         val n = u.readArrayBegin()
         val items = ArrayList<E>(n)
-        for (i in 0 until n) {
+        repeat(n) {
             items.add(template.read(u, null))
         }
         u.readArrayEnd()
@@ -44,7 +44,7 @@ internal object KtCollectionTemplates {
             }
             val n = u.readMapBegin()
             val entries = ArrayList<Pair<K, V>>(n)
-            for (i in 0 until n) {
+            repeat(n) {
                 entries.add(keyTemplate.read(u, null) to valueTemplate.read(u, null))
             }
             u.readMapEnd()

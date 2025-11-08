@@ -16,12 +16,12 @@ import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.*
-import kotlin.concurrent.getOrSet
 import kotlin.reflect.full.hasAnnotation
 
 internal class KtTemplateRegistry(private val normalizer: Normalizer?) : TemplateRegistry(null) {
 
-    private val lookupStack = ThreadLocal<LinkedList<LookupItem>>()
+    private val lookupStack = Stack<LookupItem>()
+    private val lookupCache = HashMap<Type, Template<*>>()  // no access to TemplateRegistry.cache
 
     init {
         registerGeneric(Map::class.java, GenericMapTemplate(this, KtMapTemplate::class.java))
@@ -34,7 +34,11 @@ internal class KtTemplateRegistry(private val normalizer: Normalizer?) : Templat
         return KtTemplateBuilderChain(this)
     }
 
+    @Synchronized
     override fun lookup(targetType: Type): Template<*> {
+        lookupCache[targetType]?.let {
+            return it
+        }
         val clearedType = when (targetType) {
             // type parameters of generic Kt collections are resolved as wildcards
             // e.g.: Map<K, V> -> java.util.Map<K, ? extends V>
@@ -66,34 +70,27 @@ internal class KtTemplateRegistry(private val normalizer: Normalizer?) : Templat
         }
         // find/create template and decorate if needed
         try {
-            pushToLookupStack(targetType, isTypeNormalized)
+            lookupStack.push(LookupItem(targetType, isTypeNormalized))
             var template = super.lookup(clearedType)
-            if (normalizer != null && withinNormalizedType()) {
+            if (normalizer != null && lookupStack.any { it.normalized }) {
                 template = NormalizerTemplateDecorator(template, normalizer)
             }
-            popLookupStack()
+            lookupStack.pop()
+            if (lookupStack.isEmpty()) {
+                // store templates only for root classes
+                lookupCache[targetType] = template
+            }
             return template
-        } catch (e: MessageTypeException) {
-            val ex = lookupStack.get()?.let {
-                MessageTypeException("${e.message} Lookup stack: ${it.map { it.type }}", e.cause)
-            } ?: e
-            lookupStack.remove()
-            throw ex
+        } catch (e: Exception) {
+            val stack = lookupStack.map { it.type }
+            lookupStack.clear()
+            if (e is MessageTypeException && stack.isNotEmpty()) {
+                throw MessageTypeException("${e.message} Lookup stack: $stack", e.cause)
+            } else {
+                throw e
+            }
         }
     }
-
-    private fun pushToLookupStack(type: Type, isNormalized: Boolean) {
-        lookupStack.getOrSet { LinkedList() }.addFirst(LookupItem(type, isNormalized))
-    }
-
-    private fun popLookupStack() = lookupStack.get().let {
-        it.removeFirst()
-        if (it.isEmpty()) {
-            lookupStack.remove()
-        }
-    }
-
-    private fun withinNormalizedType() = lookupStack.get().any { it.normalized }
 
     private class LookupItem(val type: Type, val normalized: Boolean)
 }

@@ -14,11 +14,9 @@ import org.msgpack.unpacker.Unpacker
 import java.io.IOException
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
+import kotlin.reflect.*
 import kotlin.reflect.full.hasAnnotation
-import kotlin.reflect.javaType
+import kotlin.reflect.full.primaryConstructor
 
 internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : AbstractTemplateBuilder(registry) {
 
@@ -32,11 +30,13 @@ internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : Abstract
             throw UnsupportedOperationException("Parameterized Kotlin data classes not supported")
         }
         val ktClass = targetType.ktClass<T>()
-        val membersByName = ktClass.members.associateBy { it.name }
-        val mainConstructor = ktClass.constructors.first()
-        val templates = mainConstructor.parameters.map { registry.lookup(it.type.javaType) }
-        val getters = mainConstructor.parameters.map { membersByName[it.name]!! }
-        return KtDataClassTemplate(mainConstructor, templates, getters)
+        val constructor = ktClass.primaryConstructor
+            ?: throw UnsupportedOperationException("No primary constructor")  // should not happen
+        val propertiesByName = ktClass.members.filter { it is KProperty<*> }.associateBy { it.name }
+        val templates = constructor.parameters.map { registry.lookup(it.type.javaType) }
+        val getters = constructor.parameters.map { propertiesByName[it.name]!! }
+        val requiredFlags = constructor.parameters.map { !it.type.isMarkedNullable }
+        return KtDataClassTemplate(ktClass, constructor, templates, getters, requiredFlags)
     }
 
     override fun <T : Any> buildTemplate(targetClass: Class<T>, fieldList: FieldList): Template<T> {
@@ -48,9 +48,11 @@ internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : Abstract
     }
 
     internal class KtDataClassTemplate<T : Any>(
+        private val ktClass: KClass<T>,
         private val constructor: KFunction<T>,
         private val templates: List<Template<Any>>,
         private val getters: List<KCallable<Any?>>,
+        private val requiredFlags: List<Boolean>,
     ) : AbstractTemplate<T>() {
 
         @Throws(IOException::class)
@@ -62,10 +64,7 @@ internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : Abstract
                 }
                 pk.writeArrayBegin(getters.size)
                 templates.forEachIndexed { i, tmpl ->
-                    when (val obj = getters[i].call(v)) {
-                        null -> pk.writeNil()
-                        else -> tmpl.write(pk, obj, true)
-                    }
+                    tmpl.write(pk, getters[i].call(v), requiredFlags[i])
                 }
                 pk.writeArrayEnd()
             } catch (e: IOException) {
@@ -82,14 +81,15 @@ internal class KtDataClassTemplateBuilder(registry: TemplateRegistry) : Abstract
                     return null
                 }
                 u.readArrayBegin()
-                val values = templates.map {
-                    when {
-                        u.trySkipNil() -> null
-                        else -> it.read(u, null, false)
-                    }
+                val values = templates.mapIndexed { i, tmpl ->
+                    tmpl.read(u, null, requiredFlags[i])
                 }
                 u.readArrayEnd()
-                return constructor.call(*values.toTypedArray())
+                try {
+                    return constructor.call(*values.toTypedArray())
+                } catch (e: Exception) {
+                    throw IllegalArgumentException("Failed to instantiate $ktClass with constructor arguments $values", e)
+                }
             } catch (e: IOException) {
                 throw e
             } catch (e: Exception) {

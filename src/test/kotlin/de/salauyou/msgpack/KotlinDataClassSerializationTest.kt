@@ -45,6 +45,16 @@ class KotlinDataClassSerializationTest {
     }
 
     @Test
+    fun `data class with multiple constructors`() {
+        val msgPack = KtMessagePack()
+        val input = DataWithMultipleConstructors(1)
+        assertEquals(DataWithMultipleConstructors("default", 1), input)
+        val binary = msgPack.write(input)
+        val output = msgPack.read(binary, DataWithMultipleConstructors::class.java)
+        assertEquals(input, output)
+    }
+
+    @Test
     fun `parameterized data class not supported`() {
         val msgPack = KtMessagePack()
         val input = GenericData("1")
@@ -78,6 +88,16 @@ class KotlinDataClassSerializationTest {
         val map: Map<NestedData?, NestedData?>,
         val deepMap: Map<Int, Map<Int, NestedData>?>,
     )
+
+    @Message
+    data class DataWithMultipleConstructors(
+        val string: String,
+        val int: Int,
+    ) {
+        constructor(int: Int) : this("default", int)
+        constructor(string: String, int: Int, ignored: Long): this(string, int)
+        constructor(string: String = "", ignored: Long) : this(string, 0)
+    }
 
     @Message
     data class GenericData<T>(
