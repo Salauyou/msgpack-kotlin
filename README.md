@@ -1,2 +1,2 @@
-- Fresh breath into good old [msgpack](https://msgpack.org]): support of Kotlin data classes and immutable collections
+- Fresh breath into old good [msgpack](https://msgpack.org]): support of Kotlin data classes and immutable collections
 - Normalization module for [Jackson](https://github.com/FasterXML/jackson): deep internation and transformation without custom deserializers
