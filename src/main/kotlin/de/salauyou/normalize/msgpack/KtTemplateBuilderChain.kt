@@ -1,5 +1,6 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
+import de.salauyou.normalize.msgpack.KtDataClassTemplateBuilder
 import org.msgpack.template.TemplateRegistry
 import org.msgpack.template.builder.TemplateBuilderChain
 

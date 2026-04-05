@@ -1,6 +1,6 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
-import de.salauyou.msgpack.api.Normalizer
+import de.salauyou.normalize.api.Normalizer
 import org.msgpack.MessagePack
 
 class KtMessagePack(normalizer: Normalizer?) : MessagePack(KtTemplateRegistry(normalizer)) {

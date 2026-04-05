@@ -1,4 +1,4 @@
-package de.salauyou.msgpack.api
+package de.salauyou.normalize.api
 
 /**
  * Annotation to mark classes which instances should be normalized

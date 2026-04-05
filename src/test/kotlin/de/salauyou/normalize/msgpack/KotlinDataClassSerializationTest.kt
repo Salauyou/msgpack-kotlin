@@ -1,4 +1,4 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
