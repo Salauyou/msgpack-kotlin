@@ -1,2 +1,2 @@
 - Support Kotlin data classes and collections in msgpack
-- Deep normalization for Jackson deserialization
+- Deep internation for Jackson deserialization
