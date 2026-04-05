@@ -1,4 +1,4 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
 import org.msgpack.MessageTypeException
 import org.msgpack.annotation.Message

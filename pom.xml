@@ -15,6 +15,7 @@
         <kotlin.version>2.0.20</kotlin.version>
         <msgpack.version>0.6.12</msgpack.version>
         <jupiter.version>6.0.0</jupiter.version>
+        <jackson.version>2.21.2</jackson.version>
     </properties>
 
     <dependencies>
@@ -32,6 +33,16 @@
             <groupId>org.msgpack</groupId>
             <artifactId>msgpack</artifactId>
             <version>${msgpack.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -1,7 +1,7 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
-import de.salauyou.msgpack.api.Normalize
-import de.salauyou.msgpack.api.Normalizer
+import de.salauyou.normalize.api.Normalize
+import de.salauyou.normalize.api.Normalizer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.msgpack.annotation.Message

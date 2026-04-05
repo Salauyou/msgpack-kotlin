@@ -1,10 +1,10 @@
-package de.salauyou.msgpack
+package de.salauyou.normalize.msgpack
 
-import de.salauyou.msgpack.KtCollectionTemplates.KtListTemplate
-import de.salauyou.msgpack.KtCollectionTemplates.KtMapTemplate
-import de.salauyou.msgpack.KtCollectionTemplates.KtSetTemplate
-import de.salauyou.msgpack.api.Normalize
-import de.salauyou.msgpack.api.Normalizer
+import de.salauyou.normalize.msgpack.KtCollectionTemplates.KtListTemplate
+import de.salauyou.normalize.msgpack.KtCollectionTemplates.KtMapTemplate
+import de.salauyou.normalize.msgpack.KtCollectionTemplates.KtSetTemplate
+import de.salauyou.normalize.api.Normalize
+import de.salauyou.normalize.api.Normalizer
 import org.msgpack.MessageTypeException
 import org.msgpack.template.GenericCollectionTemplate
 import org.msgpack.template.GenericMapTemplate
