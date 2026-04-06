@@ -30,6 +30,6 @@ val json = """{
   }
 }"""
 
-// internation will apply on Person instances and all nested properties recursively
+// internation will be applied on Person instances and all nested properties recursively
 val team = objectMapper.readValue(json, Team::class.java)
 ```
