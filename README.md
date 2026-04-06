@@ -30,7 +30,6 @@ val json = """{
   }
 }"""
 
-// internation applied on Person objects and all nested properties recursively:
-// repeated values now use same instances
+// internation will apply on Person instances and all nested properties recursively
 val team = objectMapper.readValue(json, Team::class.java)
 ```
