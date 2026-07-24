@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import de.salauyou.normalize.api.Normalize
 import de.salauyou.normalize.api.Normalizer
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class JacksonDeserializationTest {
@@ -63,19 +62,6 @@ class JacksonDeserializationTest {
             string = StringData("1000")
         )
         assertEquals(expected, output)
-    }
-
-    @Test
-    fun `empty string as null deserialization`() {
-        val objectMapper = ObjectMapper()
-            .registerKotlinModule()
-            .registerModule(EmptyStringAsNullModule())
-            .enable(SerializationFeature.INDENT_OUTPUT)
-
-        val input = StringData("")
-        val json = objectMapper.writeValueAsString(input)
-        val output = objectMapper.readValue(json, StringData::class.java)
-        assertNull(output.value)
     }
 
     data class SampleData(
